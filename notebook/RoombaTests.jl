@@ -1,6 +1,6 @@
 # initialize DESPOT env
 import Pkg
-Pkg.cd("ParallelExperiment/")
+Pkg.cd("..")
 Pkg.activate(".")
 
 # Initialize workers
@@ -110,8 +110,10 @@ solver_list = [LB_DESPOTSolver=>lbdespot_dict,
                 POMCPOWSolver=>pomcpow_dict]
 
                 
-number_of_episodes = 100
-max_steps = 100
+number_of_episodes = 1
+max_steps = 1
+
+Pkg.cd("notebook")
 
 dfs = parallel_experiment(pomdp,
                           number_of_episodes,
@@ -119,6 +121,6 @@ dfs = parallel_experiment(pomdp,
                           belief_updater=belief_updater,
                           full_factorial_design=false)
 
-CSV.write("notebook/DiscreteLidarRoomba_DESPOT.csv", dfs[1])
-CSV.write("notebook/DiscreteLidarRoomba_UCT_DESPOT.csv", dfs[2])
-CSV.write("notebook/DiscreteLidarRoomba_POMCP.csv", dfs[3])
+CSV.write("DiscreteLidarRoomba_DESPOT.csv", dfs[1])
+CSV.write("DiscreteLidarRoomba_UCT_DESPOT.csv", dfs[2])
+CSV.write("DiscreteLidarRoomba_POMCP.csv", dfs[3])
