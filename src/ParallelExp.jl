@@ -18,7 +18,9 @@ function parallel_experiment(pomdp::POMDP,
                              number_of_episodes::Int,
                              max_steps::Int,
                              solver_list::Array;
-                             belief_updater::Union{Nothing, Updater}    = nothing,
+                             belief_updater::Union{Updater,Nothing}     = nothing,
+                             initial_belief::Any                        = initialstate_distribution(pomdp),
+                             initialstate::Any                          = nothing,
                              show_progress::Bool                        = true,
                              full_factorial_design::Bool                = true,
                              auto_save::Bool                            = true)
@@ -56,14 +58,14 @@ function parallel_experiment(pomdp::POMDP,
         queue = []
         df = DataFrame()
         for i = 1:length(params)
-            println("Preparing solvers for the $(i)-th set of parameters of the $(string(solver))")
+            println("Preparing simulators for the $(i)-th set of parameters of the $(string(solver))")
+            if belief_updater === nothing
+                planner = solve(solver(;params[i]...), pomdp)
+                belief_updater = updater(planner)
+            end
             for j = 1:number_of_episodes
                 planner = solve(solver(;params[i]...), pomdp)
-                if(belief_updater === nothing)
-                    push!(queue, Sim(pomdp, planner, max_steps=max_steps, metadata=Dict(:No=>i)))
-                else
-                    push!(queue, Sim(pomdp, planner, belief_updater, max_steps=max_steps, metadata=Dict(:No=>i)))
-                end
+                push!(queue, Sim(pomdp, planner, belief_updater, initial_belief, initialstate, max_steps=max_steps, metadata=Dict(:No=>i)))
             end
             if length(queue) < 500 && i != length(params) # queue should be large so that CPU is always busy
                 continue

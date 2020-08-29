@@ -67,6 +67,8 @@ end
 ```
 ## Key parameters
 - belief_updater: Customized belief updater for specific POMDP problem
+- initial_belief: Customized initial belief for specific POMDP problem
+- initialstate: Customized initial state for specific POMDP problem
 - show_progress: Whether to show progress. Default to true.
 - full_factorial_design: Whether to enable full factorial design. Default to true. Full factorial design means every possible combination of parameters will be tested. For example, ```paramdict = Dict(:a=>[1,2], :b=>[1,2])```, then four sets of experiments will be done ```[Dict(:a=>1,:b=>1), Dict(:a=>1,:b=>2), Dict(:a=>2, :b=>1), Dict(:a=>2,:b=>2)]```. If the full factorial design is set to false, then changes will be made to the first set of parameter one at a time. For example, ```paramdict = Dict(:a=>[1,2,3], :b=>[1,2,3])```, then five sets of experiments will be done, ```[Dict(:a=>1,:b=>1), Dict(:a=>2,:b=>1), Dict(:a=>3,:b=>1), Dict(:a=>1,:b=>2), Dict(:a=>1,:b=>3)]```.
 - auto_save: Automatically save the result in "SolverName.csv" every 500 episodes. This will have minor influence on performance.

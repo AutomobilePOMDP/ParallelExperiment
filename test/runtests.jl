@@ -14,6 +14,7 @@ using BasicPOMCP
 using ParticleFilters # For simple particle filter
 using POMDPPolicies
 using BeliefUpdaters
+using Random
 
 @everywhere push!(LOAD_PATH, "../../Roomba")
 @everywhere using Roomba # For Roomba Env
@@ -80,9 +81,15 @@ solver_list = [#LB_DESPOTSolver=>lbdespot_dict,
                 POMCPOWSolver=>pomcpow_dict]
 
 number_of_episodes = 1
-max_steps = 1
+max_steps = 100
+rng = MersenneTwister(1)
 
-dfs = parallel_experiment(pomdp, number_of_episodes, max_steps, solver_list, belief_updater=belief_updater, full_factorial_design=false)
+dfs = parallel_experiment(pomdp,
+                          number_of_episodes,
+                          max_steps, solver_list,
+                          belief_updater=belief_updater,
+                          initialstate=initialstate(pomdp, rng),
+                          full_factorial_design=false)
 for i in 1:length(dfs)
     CSV.write("BumperRoomba$(i).csv", dfs[i])
 end
