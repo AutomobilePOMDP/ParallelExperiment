@@ -78,7 +78,7 @@ function parallel_experiment(pomdp::POMDP,
             for i in unique(data[!, :No])
                 push!(rewards, data[data[!, :No] .== i,:reward])
                 params[i] = Dict(:solver=>string(solver), [k=>string(v) for (k,v) in params[i]]...)
-                push!(df, (params[i]..., mean=mean(rewards[i]), std=std(rewards[i])/length(rewards[i]), confidence_interval="(" * @sprintf("%.2f", quantile(rewards[i], 0.025)) * "," * @sprintf("%.2f", quantile(rewards[i], 0.975)) * ")"))
+                push!(df, (params[i]..., Mean=mean(rewards[i]), SEM=std(rewards[i])/length(rewards[i]), Confidence_Interval="(" * @sprintf("%.2f", quantile(rewards[i], 0.025)) * "," * @sprintf("%.2f", quantile(rewards[i], 0.975)) * ")"))
             end
             if auto_save
                 CSV.write("$(string(solver)).csv", df)
