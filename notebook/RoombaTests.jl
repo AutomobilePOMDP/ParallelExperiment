@@ -1,4 +1,4 @@
-# initialize DESPOT env
+# initialize ParallelExperiment env
 import Pkg
 Pkg.cd("..")
 Pkg.activate(".")
@@ -81,37 +81,39 @@ end
 bounds = IndependentBounds(DefaultPolicyLB(running_policy), 10.0, check_terminal=true)
 random_bounds = IndependentBounds(DefaultPolicyLB(RandomPolicy(pomdp)), 10.0, check_terminal=true)
 lbdespot_dict = Dict(:default_action=>[running_policy,], 
-                    :bounds=>[random_bounds,],
-                    :lambda=>[0.1, 0.0, 0.01, 1.0],
+                    :bounds=>[bounds,],
+                    :lambda=>[0.1,],
                     :T_max=>[10.0],
-                    :K=>[300, 100],
-                    :beta=>[0.5, 0, 1., 5.])
+                    :K=>[300],
+                    :beta=>[0.5, 0])
 
 # For UCT-DESPOT
 rollout_policy = running_policy
 random_rollout_policy = RandomPolicy(pomdp)
-uctdespot_dict = Dict(:rollout_policy=>[rollout_policy,],
-                        :K=>[300, 100],
+uctdespot_dict = Dict(:default_action=>[running_policy,], 
+                        :rollout_policy=>[rollout_policy,],
+                        :K=>[1000, 2000,],
                         :T_max=>[10.0],
-                        :m=>[30, 10],
-                        :c=>[10., 1., 100.])
+                        :m=>[30, 50],
+                        :c=>[1.,])
 
 # For POMCP
 value_estimator = FORollout(running_policy)
 random_value_estimator = FORollout(RandomPolicy(pomdp))
-pomcpow_dict = Dict(:estimate_value=>[value_estimator],
+pomcpow_dict = Dict(:default_action=>[running_policy,], 
+                    :estimate_value=>[value_estimator],
                     :tree_queries=>[100000,], 
                     :max_time=>[10.0,], 
-                    :criterion=>[MaxUCB(10.), MaxUCB(100.)])
+                    :criterion=>[MaxUCB(1000.),])
 
 # Solver list
-solver_list = [LB_DESPOTSolver=>lbdespot_dict, 
-                UCT_DESPOTSolver=>uctdespot_dict, 
-                POMCPOWSolver=>pomcpow_dict]
+solver_list = [#LB_DESPOTSolver=>lbdespot_dict, 
+               UCT_DESPOTSolver=>uctdespot_dict,]
+               #POMCPOWSolver=>pomcpow_dict]
 
                 
-number_of_episodes = 1
-max_steps = 1
+number_of_episodes = 100
+max_steps = 100
 
 Pkg.cd("notebook")
 
@@ -121,6 +123,6 @@ dfs = parallel_experiment(pomdp,
                           belief_updater=belief_updater,
                           full_factorial_design=false)
 
-CSV.write("DiscreteLidarRoomba_DESPOT.csv", dfs[1])
-CSV.write("DiscreteLidarRoomba_UCT_DESPOT.csv", dfs[2])
-CSV.write("DiscreteLidarRoomba_POMCP.csv", dfs[3])
+# CSV.write("DiscreteLidarRoomba_DESPOT.csv", dfs[1])
+CSV.write("DiscreteLidarRoomba_UCT_DESPOT.csv", dfs[1])
+# CSV.write("DiscreteLidarRoomba_POMCP.csv", dfs[3])
