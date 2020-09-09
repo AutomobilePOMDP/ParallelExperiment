@@ -1,18 +1,18 @@
 # Initialize multiple workers for parallel experiment
-num_of_procs = 3 # You can also use addprocs() with no argument to create as many workers as your threads
+num_of_procs = 10 # You can also use addprocs() with no argument to create as many workers as your threads
 using Distributed
 addprocs(num_of_procs) # initial workers with the project env in current work directory
 
-@everywhere push!(LOAD_PATH, "C:/Users/pilgrim/ParallelExperiment/")
+@everywhere push!(LOAD_PATH, "./ParallelExperiment/")
 @everywhere using ParallelExp
 
 # Make sure all your solvers are loaded in every procs
-# @everywhere using QMDP
+@everywhere using QMDP
 @everywhere using POMCPOW
 
-@everywhere push!(LOAD_PATH, "C:/Users/pilgrim/LB-DESPOT/")
+@everywhere push!(LOAD_PATH, "./LB-DESPOT/")
 @everywhere using LBDESPOT # LB-DESPOT pkg
-@everywhere push!(LOAD_PATH, "C:/Users/pilgrim/UCT-DESPOT/")
+@everywhere push!(LOAD_PATH, "./UCT-DESPOT/")
 @everywhere using UCTDESPOT # UCT-DESPOT pkg
 
 # Make sure these pkgs are loaded in every procs
@@ -31,10 +31,10 @@ using Random
 using Printf
 
 pomdp = gen_lasertag()
-belief_updater = SIRParticleFilter(pomdp, 10000)
+belief_updater = SIRParticleFilter(pomdp, 20000)
 
 
-function move_towards(b)
+@everywhere function move_towards(b)
     if typeof(b) <: LaserTag.LTInitialBelief
         return rand(1:5)
     elseif typeof(b) <: LBDESPOT.ScenarioBelief ||
@@ -60,8 +60,8 @@ end
 move_towards_policy = solve(FunctionSolver(move_towards), pomdp)
 
 # For LB-DESPOT
-bounds = IndependentBounds(DefaultPolicyLB(move_towards_policy), 10.0, check_terminal=true)
-random_bounds = IndependentBounds(DefaultPolicyLB(RandomPolicy(pomdp)), 10.0, check_terminal=true)
+bounds = IndependentBounds(DefaultPolicyLB(move_towards_policy), 8.6, check_terminal=true)
+random_bounds = IndependentBounds(DefaultPolicyLB(RandomPolicy(pomdp)), 200.0, check_terminal=true)
 lbdespot_dict = Dict(:default_action=>[move_towards_policy,],
                     :bounds=>[bounds, random_bounds],
                     :K=>[500],
@@ -95,14 +95,17 @@ solver_list = [LB_DESPOTSolver=>lbdespot_dict]
                 #QMDPSolver=>Dict(:max_iterations=>[200,]),
                 #FuncSolver=>Dict(:func=>[move_towards,])]
 
+number_of_episodes = 100
+max_steps = 90
+
 dfs = parallel_experiment(pomdp,
                           number_of_episodes,
                           max_steps, solver_list,
                           belief_updater=belief_updater,
                           full_factorial_design=false)
 
-cd("..")
-cd("DESPOT_data")
+cd("./DESPOT_data")
 CSV.write("LB_DESPOT.csv", dfs[1])
+cd("..")
 
 println("finish")
