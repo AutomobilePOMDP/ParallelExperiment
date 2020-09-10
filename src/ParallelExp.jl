@@ -22,6 +22,7 @@ function parallel_experiment(pomdp::POMDP,
                              initial_belief::Any                        = initialstate_distribution(pomdp),
                              initialstate::Any                          = nothing,
                              show_progress::Bool                        = true,
+                             max_queue_length::Int                      = 300,
                              full_factorial_design::Bool                = true,
                              auto_save::Bool                            = true)
 
@@ -67,7 +68,7 @@ function parallel_experiment(pomdp::POMDP,
                 planner = solve(solver(;params[i]...), pomdp)
                 push!(queue, Sim(pomdp, planner, belief_updater, initial_belief, initialstate, max_steps=max_steps, metadata=Dict(:No=>i)))
             end
-            if length(queue) < 500 && i != length(params) # queue should be large so that CPU is always busy
+            if length(queue) < 300 && i != length(params) # queue should be large so that CPU is always busy
                 continue
             end
             println("Solving")

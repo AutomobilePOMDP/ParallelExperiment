@@ -58,9 +58,11 @@ let
     for pomdp in pomdps
         println(k)
         # QMDP upper bound
-        qmdp_policy = solve(QMDPSolver(), pomdp)
-        @everywhere function qmdp_upper_bound(pomdp, b)
-            return value($qmdp_policy, b)
+        if k == 1
+            qmdp_policy = solve(QMDPSolver(), pomdp)
+            @everywhere function qmdp_upper_bound(pomdp, b)
+                return value($qmdp_policy, b)
+            end
         end
 
         # default policy
@@ -69,65 +71,140 @@ let
         end
 
         # better default policy
+        function ind_rank(arr::Vector{Float64}, inds::Vector{Int})
+            # Input: arr: an array storing all elements needed
+            #        inds: an array storing the indexes of elements need to be ranked
+            # Output: an array of ranking for each element indexed by inds
+            sort_ind = Vector{Int}(undef, length(inds))
+            ind_ranking = Vector{Int}(undef, length(inds))
+            sort_ind[1] = 1
+            for i in 2:length(inds)
+                ind = 1
+                for j in i-1:-1:1
+                    if arr[inds[i]] < arr[inds[sort_ind[j]]]
+                        sort_ind[j+1] = sort_ind[j]
+                    else
+                        ind = j + 1
+                        break
+                    end
+                end
+                sort_ind[ind] = i
+            end
+
+            ind_ranking[sort_ind[1]] = 1
+            rank = 1
+            for i in 2:length(sort_ind)
+                if arr[inds[sort_ind[i]]] == arr[inds[sort_ind[i-1]]]
+                    ind_ranking[sort_ind[i]] = rank
+                else
+                    rank += 1
+                    ind_ranking[sort_ind[i]] = rank
+                end
+            end
+            return ind_ranking
+        end
         to_best = FunctionPolicy() do b 
             if typeof(b) <: RSState 
                 s = b 
-                val, ind = findmax(s.rocks) 
+                good_probs = s.rocks
             else 
                 s = rand(b) 
                 good_count = zeros(Int, length(s.rocks)) 
                 for state in particles(b) 
                     good_count += state.rocks 
                 end 
-                val, ind = findmax(good_count) 
+                good_probs = good_count./length(s.rocks)
             end 
-            if val/length(s.rocks) < 0.5 
-                return 2 
-            end 
-            rock_pos = pomdp.rocks_positions[ind]
+
+            # Calculate the distance between the robot and rocks
+            rock_dist = Vector{Float64}(undef, length(s.rocks))
+            for i in 1:length(s.rocks)
+                pos_diff = pomdp.rocks_positions[i] - s.pos
+                rock_dist[i] = sqrt(pos_diff[1]*pos_diff[1] + pos_diff[2]*pos_diff[2])
+            end
+            # rank the distance
+            dist_ranking = ind_rank(rock_dist, [i for i in 1:length(s.rocks)])
+            
+            # select the rock with the smallest distance s.t. the probability of being a good rock greater than 0.1
+            currently_best_rock = 0
+            for i in 1:length(s.rocks)
+                if good_probs[i] > 0.1
+                    currently_best_rock = i
+                    break
+                end
+            end
+            # if all rocks are bad with a high probability, go east
+            if currently_best_rock == 0
+                return 2
+            end
+
+            # calculate the distance between the best rock and the current position
+            rock_pos = pomdp.rocks_positions[currently_best_rock]
             diff = rock_pos - s.pos 
-            if diff[2] != 0 
-                if sign(diff[2]) == 1 
-                    return 1 # to north 
-                else 
-                    return 3 # to south 
-                end 
-            else 
-                if sign(diff[1]) == 1 
-                    return 2 # to east 
-                elseif sign(diff[1]) == -1 
-                    return 4 # to west 
-                else 
-                    return 5 # sample 
-                end 
-            end 
+            dist = sqrt(diff[1]*diff[1] + diff[2]*diff[2])
+            # sense the currently best rock when coming close and being not sure about wheather it is a good rock
+            if dist < 2 && good_probs[currently_best_rock] < 0.9
+                return 5 + currently_best_rock
+            end
+
+            # sample
+            if dist == 0
+                return 5
+            end
+
+            # randomly choose an action movint to the best rock
+            px = exp(diff[1])/(exp(diff[1])+exp(diff[2]))
+            if rand() < px
+                if diff[1] == 0
+                    return rand([2,4]) # east or west
+                elseif sign(diff[1]) == 1
+                    return 2 # to est
+                else
+                    return 4 # to west
+                end
+            else
+                if diff[2] == 0
+                    return rand([1,3]) # north or south
+                elseif sign(diff[2]) == 1
+                    return 1 # to north
+                else
+                    return 3 # to south
+                end
+            end
         end
 
         # For LB-DESPOT
             random_bounds = IndependentBounds(DefaultPolicyLB(RandomPolicy(pomdp)), 40.0, check_terminal=true)
             bounds = IndependentBounds(DefaultPolicyLB(to_best), 40.0, check_terminal=true)
-            bounds_hub = IndependentBounds(DefaultPolicyLB(to_best), qmdp_upper_bound, check_terminal=true)
-            lbdespot_dict1 = Dict(:default_action=>[to_best,], 
-                                :bounds=>[bounds],
-                                :K=>[100],
-                                :beta=>[0.5])
-            lbdespot_dict2 = Dict(:default_action=>[to_best,], 
-                                :bounds=>[random_bounds],
-                                :K=>[100],
-                                :beta=>[0.3])
-            lbdespot_dict3 = Dict(:default_action=>[to_best,], 
-                                :bounds=>[bounds_hub],
-                                :K=>[100],
-                                :beta=>[0.5])
+            if k == 1
+                bounds_hub = IndependentBounds(DefaultPolicyLB(to_best), qmdp_upper_bound, check_terminal=true)
+                lbdespot_dict = Dict(:default_action=>[to_best,], 
+                                    :bounds=>[bounds, bounds_hub],
+                                    :K=>[100, 300],
+                                    :beta=>[0.0, 0.3])
+            else
+                lbdespot_dict = Dict(:default_action=>[to_best,], 
+                                    :bounds=>[bounds,],
+                                    :K=>[100, 300],
+                                    :beta=>[0.0, 0.3])
+            end
+            # lbdespot_dict2 = Dict(:default_action=>[to_best,], 
+            #                     :bounds=>[random_bounds],
+            #                     :K=>[100],
+            #                     :beta=>[0.3])
+            # lbdespot_dict3 = Dict(:default_action=>[to_best,], 
+            #                     :bounds=>[bounds_hub],
+            #                     :K=>[100],
+            #                     :beta=>[0.5])
         # For UCT-DESPOT
-            # random_rollout_policy = RandomPolicy(pomdp)
-            # rollout_policy = to_best
-            # uctdespot_dict1 = Dict(:default_action=>[RandomPolicy(pomdp),],
-            #                     :rollout_policy=>[random_rollout_policy],
-            #                     :max_trials=>[100000,],
-            #                     :K=>[1000, 2000],
-            #                     :m=>[50, 100],
-            #                     :c=>[1, 10.])
+            random_rollout_policy = RandomPolicy(pomdp)
+            rollout_policy = to_best
+            uctdespot_dict = Dict(:default_action=>[to_best,],
+                                :rollout_policy=>[rollout_policy],
+                                :max_trials=>[100000,],
+                                :K=>[300, 1000, 3000],
+                                :m=>[30, 100],
+                                :c=>[10., 30., 3.])
             # uctdespot_dict = Dict(:default_action=>[RandomPolicy(pomdp),],
             #                     :rollout_policy=>[random_rollout_policy],
             #                     :max_trials=>[100000,],
@@ -145,14 +222,14 @@ let
 
         # Solver list
             solver_list = [
-                LB_DESPOTSolver=>lbdespot_dict1, 
-                LB_DESPOTSolver=>lbdespot_dict2, 
-                LB_DESPOTSolver=>lbdespot_dict3, 
-                # UCT_DESPOTSolver=>uctdespot_dict, 
+                LB_DESPOTSolver=>lbdespot_dict, 
+                # LB_DESPOTSolver=>lbdespot_dict2, 
+                # LB_DESPOTSolver=>lbdespot_dict3, 
+                UCT_DESPOTSolver=>uctdespot_dict, 
                 # POMCPOWSolver=>pomcpow_dict
             ]
 
-        number_of_episodes = 100
+        number_of_episodes = 2
         max_steps = 300
         # Pkg.cd("notebook")
         dfs = parallel_experiment(pomdp,
@@ -162,7 +239,7 @@ let
         CSV.write("RockSample_DESPOT_$k.csv", dfs[1])
         # CSV.write("RockSample_DESPOT2_$k.csv", dfs[2])
         # CSV.write("RockSample_DESPOT3_$k.csv", dfs[3])
-        # CSV.write("RockSample_UCT_DESPOT_$k.csv", dfs[2])
+        CSV.write("RockSample_UCT_DESPOT_$k.csv", dfs[2])
         # CSV.write("RockSample_POMCP_$k.csv", dfs[3])
         k += 1
     end
