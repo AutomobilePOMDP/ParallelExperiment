@@ -2,16 +2,8 @@
 ParallelExp is a module providing necessary tools for parallel experiments. It features experiments with different POMDP solvers and different sets of parameters for each solver.
 ## Installation
 ```bash
-git clone https://github.com/AutomobilePOMDP/ParallelExperiment
-cd ParallelExperiment
-julia
-```
-```julia
-Pkg> add POMDPs
-Pkg> registry add https://github.com/JuliaPOMDP/Registry
-Pkg> activate .
-Pkg> instantiate
-Pkg> precompile
+add https://github.com/AutomobilePOMDP/Roomba # For now, Roomba is required as a testing module.
+add https://github.com/AutomobilePOMDP/ParallelExperiment
 ```
 ## Usage
 ```julia
