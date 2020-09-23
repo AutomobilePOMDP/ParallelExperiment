@@ -6,17 +6,12 @@ using ParallelExp
 
 @everywhere using POMCPOW
 using BasicPOMCP
-@everywhere push!(LOAD_PATH, "../../LB-DESPOT/")
-@everywhere using LBDESPOT # LB-DESPOT pkg
-@everywhere push!(LOAD_PATH, "../../UCT-DESPOT/")
-@everywhere using UCTDESPOT # UCT-DESPOT pkg
 @everywhere using POMDPs # Basic POMDP framework
 using ParticleFilters # For simple particle filter
 using POMDPPolicies
 using BeliefUpdaters
 using Random
 
-@everywhere push!(LOAD_PATH, "../../Roomba")
 @everywhere using Roomba # For Roomba Env
 
 max_speed = 2.0
@@ -51,22 +46,6 @@ rush_policy = FunctionPolicy() do b
     end
 end
 
-# For LB-DESPOT
-bounds = IndependentBounds(DefaultPolicyLB(rush_policy), 10.0, check_terminal=true)
-random_bounds = IndependentBounds(DefaultPolicyLB(RandomPolicy(pomdp)), 10.0, check_terminal=true)
-lbdespot_dict = Dict(:default_action=>[rush_policy,], 
-                    :bounds=>[bounds, random_bounds],
-                    :K=>[100, 300, 500],
-                    :beta=>[0., 0.1, 1., 10., 100.])
-
-# For UCT-DESPOT
-rollout_policy = rush_policy
-random_rollout_policy = RandomPolicy(pomdp)
-uctdespot_dict = Dict(:rollout_policy=>[rollout_policy, random_rollout_policy],
-                        :K=>[100, 300, 500],
-                        :m=>[5, 10, 20, 30],
-                        :c=>[0.1, 1., 10., 100., 1000., 10000.])
-
 # For POMCP
 value_estimator = PORollout(rush_policy, PreviousObservationUpdater())
 random_value_estimator = FORollout(RandomPolicy(pomdp))
@@ -76,11 +55,9 @@ pomcpow_dict = Dict(:estimate_value=>[value_estimator, random_value_estimator],
                     :criterion=>[MaxUCB(0.1), MaxUCB(1.0), MaxUCB(10.), MaxUCB(100.), MaxUCB(1000.)])
 
 # Solver list
-solver_list = [#LB_DESPOTSolver=>lbdespot_dict, 
-                #UCT_DESPOTSolver=>uctdespot_dict, 
-                POMCPOWSolver=>pomcpow_dict]
+solver_list = [POMCPOWSolver=>pomcpow_dict,]
 
-number_of_episodes = 1
+number_of_episodes = 2
 max_steps = 100
 rng = MersenneTwister(1)
 
