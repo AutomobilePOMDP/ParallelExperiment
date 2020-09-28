@@ -40,7 +40,7 @@ pomcpow_list = [:estimate_value=>[random_value_estimator],
                     :criterion=>[MaxUCB(0.1), MaxUCB(1.0), MaxUCB(10.), MaxUCB(100.), MaxUCB(1000.)]]
 solver_list = [ PL_DESPOTSolver=>pldespot_list, 
                 POMCPOWSolver=>pomcpow_list,
-                FuncSolver=>Dict(:func=>[rush_policy,])]
+                FuncSolver=>[:func=>[rush_policy,],]
 
 number_of_episodes = 100
 max_steps = 100
