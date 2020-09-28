@@ -2,7 +2,6 @@
 ParallelExp is a module providing necessary tools for parallel experiments. It features experiments with different POMDP solvers and different sets of parameters for each solver.
 ## Installation
 ```bash
-add https://github.com/AutomobilePOMDP/Roomba # For now, Roomba is required as a testing module.
 add https://github.com/AutomobilePOMDP/ParallelExperiment
 ```
 ## Usage
@@ -12,36 +11,35 @@ num_of_procs = 10 # You can also use addprocs() with no argument to create as ma
 using Distributed
 addprocs(num_of_procs) # initial workers with the project env in current work directory
 
-@everywhere push!(LOAD_PATH, "../ParallelExp")
+# using Pkg
+# Pkg.add("https://github.com/AutomobilePOMDP/ParallelExperiment")
 using ParallelExp
 
 # Make sure all your solvers are loaded in every procs
 @everywhere using POMCPOW
 using BasicPOMCP
-@everywhere push!(LOAD_PATH, "../LB-DESPOT/")
-@everywhere using LBDESPOT # LB-DESPOT pkg
-@everywhere push!(LOAD_PATH, "../UCT-DESPOT/")
-@everywhere using UCTDESPOT # UCT-DESPOT pkg
+
+# Pkg.add("https://github.com/AutomobilePOMDP/PL-DESPOT")
+@everywhere using PL_DESPOT # PL-DESPOT pkg
 
 # Make sure these pkgs are loaded in every procs
 @everywhere using POMDPs # Basic POMDP framework
 @everywhere using ParticleFilters # For simple particle filter
 
-# Make sure your POMDP model is loaded in every procs
-@everywhere push!(LOAD_PATH, "../Roomba")
-@everywhere using Roomba # For Roomba Env
-
 ### Setting up an POMDP problem ###
 
 # The following codes is quoted from tests.ipynb, you can check the the detail there.
 
-lbdespot_dict = Dict(:default_action=>[rush_policy,], 
+pldespot_list = [:default_action=>[rush_policy,], 
                     :bounds=>[bounds, random_bounds],
                     :K=>[100, 300, 500],
-                    :beta=>[0., 0.1, 1., 10., 100.])
-solver_list = [LB_DESPOTSolver=>lbdespot_dict, 
-                UCT_DESPOTSolver=>uctdespot_dict, 
-                POMCPOWSolver=>pomcpow_dict,
+                    :beta=>[0., 0.1, 1., 10., 100.]]
+pomcpow_list = [:estimate_value=>[random_value_estimator],
+                    :tree_queries=>[100000,], 
+                    :max_time=>[1.0,], 
+                    :criterion=>[MaxUCB(0.1), MaxUCB(1.0), MaxUCB(10.), MaxUCB(100.), MaxUCB(1000.)]]
+solver_list = [ PL_DESPOTSolver=>pldespot_list, 
+                POMCPOWSolver=>pomcpow_list,
                 FuncSolver=>Dict(:func=>[rush_policy,])]
 
 number_of_episodes = 100

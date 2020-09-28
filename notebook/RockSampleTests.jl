@@ -178,55 +178,55 @@ let
             bounds = IndependentBounds(DefaultPolicyLB(to_best), 40.0, check_terminal=true)
             if k == 1
                 bounds_hub = IndependentBounds(DefaultPolicyLB(to_best), qmdp_upper_bound, check_terminal=true)
-                lbdespot_dict = Dict(:default_action=>[to_best,], 
+                lbdespot_list = [:default_action=>[to_best,], 
                                     :bounds=>[bounds, bounds_hub],
                                     :K=>[100, 300],
-                                    :beta=>[0.0, 0.3])
+                                    :beta=>[0.0, 0.3]]
             else
-                lbdespot_dict = Dict(:default_action=>[to_best,], 
+                lbdespot_list = [:default_action=>[to_best,], 
                                     :bounds=>[bounds,],
                                     :K=>[100, 300],
-                                    :beta=>[0.0, 0.3])
+                                    :beta=>[0.0, 0.3]]
             end
-            # lbdespot_dict2 = Dict(:default_action=>[to_best,], 
+            # lbdespot_list2 = [:default_action=>[to_best,], 
             #                     :bounds=>[random_bounds],
             #                     :K=>[100],
-            #                     :beta=>[0.3])
-            # lbdespot_dict3 = Dict(:default_action=>[to_best,], 
+            #                     :beta=>[0.3]]
+            # lbdespot_list3 = [:default_action=>[to_best,], 
             #                     :bounds=>[bounds_hub],
             #                     :K=>[100],
-            #                     :beta=>[0.5])
+            #                     :beta=>[0.5]]
         # For UCT-DESPOT
             random_rollout_policy = RandomPolicy(pomdp)
             rollout_policy = to_best
-            uctdespot_dict = Dict(:default_action=>[to_best,],
+            uctdespot_list = [:default_action=>[to_best,],
                                 :rollout_policy=>[rollout_policy],
                                 :max_trials=>[100000,],
                                 :K=>[300, 1000, 3000],
                                 :m=>[30, 100],
-                                :c=>[10., 30., 3.])
-            # uctdespot_dict = Dict(:default_action=>[RandomPolicy(pomdp),],
+                                :c=>[10., 30., 3.]]
+            # uctdespot_list = [:default_action=>[RandomPolicy(pomdp),],
             #                     :rollout_policy=>[random_rollout_policy],
             #                     :max_trials=>[100000,],
             #                     :K=>[300, 100, 500],
             #                     :m=>[50, 30],
-            #                     :c=>[1.,10,])
+            #                     :c=>[1.,10,]]
         # For POMCPOW
             # random_value_estimator = FORollout(RandomPolicy(pomdp))
             # value_estimator = FORollout(to_best)
-            # pomcpow_dict = Dict(:default_action=>[RandomPolicy(pomdp),],
+            # pomcpow_list = [:default_action=>[RandomPolicy(pomdp),],
             #                     :estimate_value=>[random_value_estimator],
             #                     :tree_queries=>[200000,], 
             #                     :max_time=>[1.0,],
-            #                     :criterion=>[MaxUCB(10.),])
+            #                     :criterion=>[MaxUCB(10.),]]
 
         # Solver list
             solver_list = [
-                LB_DESPOTSolver=>lbdespot_dict, 
-                # LB_DESPOTSolver=>lbdespot_dict2, 
-                # LB_DESPOTSolver=>lbdespot_dict3, 
-                UCT_DESPOTSolver=>uctdespot_dict, 
-                # POMCPOWSolver=>pomcpow_dict
+                LB_DESPOTSolver=>lbdespot_list, 
+                # LB_DESPOTSolver=>lbdespot_list2, 
+                # LB_DESPOTSolver=>lbdespot_list3, 
+                UCT_DESPOTSolver=>uctdespot_list, 
+                # POMCPOWSolver=>pomcpow_list
             ]
 
         number_of_episodes = 2

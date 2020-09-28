@@ -28,15 +28,23 @@ function parallel_experiment(pomdp::POMDP,
 
     println("Generating experimental design")
     solvers = []
-    for (solver, param_dict) in solver_list
-        params = [Dict()]
+    for i in 1:length(solver_list)
+        solver = solver_list[i].first
+        param_list = solver_list[i].second
         if full_factorial_design
-            for param in param_dict
-                params = [Dict{Symbol, Any}(a...,param.first=>b) for a in params for b in param.second]
+            params = [[]]
+            for param in param_list
+                params = [[a...,param.first=>b] for a in params for b in param.second]
             end
         else
-            default_param = Dict(k=>v[1] for (k,v) in param_dict)
-            params = unique(vcat([[Dict{Symbol, Any}(default_param..., k=>value) for value in v] for (k, v) in param_dict]...))
+            default_param = [k=>v[1] for (k,v) in param_list]
+            params = []
+            for k in 1:length(param_list)
+                for value in param_list[k].second
+                    push!(params, [default_param[1:k-1]..., param_list[k].first=>value, default_param[k+1:end]...])
+                end
+            end
+            params = unique(params)
         end 
         # Different sets of parameters for same solver will be merged
         isexist = false
@@ -78,8 +86,8 @@ function parallel_experiment(pomdp::POMDP,
             queue = [] # clear out queue for next sets of parameters
             for i in unique(data[!, :No])
                 push!(rewards, data[data[!, :No] .== i,:reward])
-                params[i] = Dict(:solver=>string(solver), [k=>string(v) for (k,v) in params[i]]...)
-                push!(df, (params[i]..., Mean=mean(rewards[i]), SEM=std(rewards[i])/length(rewards[i]), Confidence_Interval="(" * @sprintf("%.2f", quantile(rewards[i], 0.025)) * "," * @sprintf("%.2f", quantile(rewards[i], 0.975)) * ")"))
+                params[i] = [:solver=>string(solver), [k=>string(v) for (k,v) in params[i]]...]
+                push!(df, (params[i]..., Mean=mean(rewards[i]), SEM=std(rewards[i])/sqrt(number_of_episodes), Confidence_Interval="(" * @sprintf("%.2f", quantile(rewards[i], 0.025)) * "," * @sprintf("%.2f", quantile(rewards[i], 0.975)) * ")"))
             end
             if auto_save
                 CSV.write("$(string(solver)).csv", df)

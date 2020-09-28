@@ -62,50 +62,51 @@ move_towards_policy = solve(FunctionSolver(move_towards), pomdp)
 # For LB-DESPOT
 bounds = IndependentBounds(DefaultPolicyLB(move_towards_policy), 8.6, check_terminal=true)
 random_bounds = IndependentBounds(DefaultPolicyLB(RandomPolicy(pomdp)), 200.0, check_terminal=true)
-lbdespot_dict = Dict(:default_action=>[move_towards_policy,],
+lbdespot_list = [:default_action=>[move_towards_policy,],
                     :bounds=>[bounds, random_bounds],
                     :K=>[500],
                     :lambda=>[0.01],
-                    :beta=>[0.])
+                    :beta=>[0.]]
 
 # For UCT-DESPOT
 rollout_policy = move_towards_policy
 random_rollout_policy = RandomPolicy(pomdp)
-uctdespot_dict = Dict(:default_action=>[move_towards_policy,],
+uctdespot_list = [:default_action=>[move_towards_policy,],
                         :rollout_policy=>[rollout_policy, random_rollout_policy],
                         :K=>[3000, 5000],
                         :m=>[100, 1],
-                        :c=>[100.,])
+                        :c=>[100.,]]
 
 # For POMCPOW
 value_estimator = FORollout(move_towards_policy)
 random_value_estimator = FORollout(RandomPolicy(pomdp))
-pomcpow_dict = Dict(:estimate_value=>[value_estimator, random_value_estimator],
+pomcpow_list = [:estimate_value=>[value_estimator, random_value_estimator],
                     :tree_queries=>[150000,],
                     :max_time=>[1.0,],
                     :criterion=>[MaxUCB(100),],
                     :enable_action_pw=>[false,],
                     :k_observation=>[2.,],
-                    :alpha_observation=>[0.15,])
+                    :alpha_observation=>[0.15,]]
 
 # Solver list
-solver_list = [LB_DESPOTSolver=>lbdespot_dict]
-                #UCT_DESPOTSolver=>uctdespot_dict,
-                #POMCPOWSolver=>pomcpow_dict,
+solver_list = [LB_DESPOTSolver=>lbdespot_list,
+                #UCT_DESPOTSolver=>uctdespot_list,
+                #POMCPOWSolver=>pomcpow_list,
                 #QMDPSolver=>Dict(:max_iterations=>[200,]),
                 #FuncSolver=>Dict(:func=>[move_towards,])]
+                ]
 
 number_of_episodes = 100
 max_steps = 90
 
-dfs = parallel_experiment(pomdp,
+dfs = paralist[pomdp,
                           number_of_episodes,
                           max_steps, solver_list,
                           belief_updater=belief_updater,
-                          full_factorial_design=false)
+                          full_factorial_design=false]
 
 cd("./DESPOT_data")
 CSV.write("LB_DESPOT.csv", dfs[1])
-cd("..")
+clist("[
 
-println("finish")
+println("finish")]

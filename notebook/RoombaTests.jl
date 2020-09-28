@@ -80,36 +80,36 @@ end
 # For DESPOT
 bounds = IndependentBounds(DefaultPolicyLB(running_policy), 10.0, check_terminal=true)
 random_bounds = IndependentBounds(DefaultPolicyLB(RandomPolicy(pomdp)), 10.0, check_terminal=true)
-lbdespot_dict = Dict(:default_action=>[running_policy,], 
+lbdespot_list = [:default_action=>[running_policy,], 
                     :bounds=>[bounds,],
                     :lambda=>[0.1,],
                     :T_max=>[10.0],
                     :K=>[300],
-                    :beta=>[0.5, 0])
+                    :beta=>[0.5, 0]]
 
 # For UCT-DESPOT
 rollout_policy = running_policy
 random_rollout_policy = RandomPolicy(pomdp)
-uctdespot_dict = Dict(:default_action=>[running_policy,], 
+uctdespot_list = [:default_action=>[running_policy,], 
                         :rollout_policy=>[rollout_policy,],
                         :K=>[1000, 2000,],
                         :T_max=>[10.0],
                         :m=>[30, 50],
-                        :c=>[1.,])
+                        :c=>[1.,]]
 
 # For POMCP
 value_estimator = FORollout(running_policy)
 random_value_estimator = FORollout(RandomPolicy(pomdp))
-pomcpow_dict = Dict(:default_action=>[running_policy,], 
+pomcpow_list = [:default_action=>[running_policy,], 
                     :estimate_value=>[value_estimator],
                     :tree_queries=>[100000,], 
                     :max_time=>[10.0,], 
-                    :criterion=>[MaxUCB(1000.),])
+                    :criterion=>[MaxUCB(1000.),]]
 
 # Solver list
-solver_list = [#LB_DESPOTSolver=>lbdespot_dict, 
-               UCT_DESPOTSolver=>uctdespot_dict,]
-               #POMCPOWSolver=>pomcpow_dict]
+solver_list = [#LB_DESPOTSolver=>lbdespot_list, 
+               UCT_DESPOTSolver=>uctdespot_list,]
+               #POMCPOWSolver=>pomcpow_list]
 
                 
 number_of_episodes = 100
