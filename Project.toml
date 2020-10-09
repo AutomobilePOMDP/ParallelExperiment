@@ -1,13 +1,14 @@
 name = "ParallelExp"
 uuid = "34d6aced-5efe-466f-b6da-e4bb150683a7"
 repo = "https://github.com/AutomobilePOMDP/ParallelExperiment"
-version = "0.1.1"
+version = "0.2.0"
 
 [deps]
 BeliefUpdaters = "8bb6e9a1-7d73-552c-a44a-e5dc5634aac4"
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 Cairo = "159f3aea-2a34-519c-b102-8c37f9878175"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 Fontconfig = "186bb1d3-e1f7-5a2c-a377-96d770f13627"
 POMCPOW = "4c53ee00-974c-466f-8fa5-8dd73959bbab"
