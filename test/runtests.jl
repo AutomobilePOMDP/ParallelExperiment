@@ -32,6 +32,20 @@ dfs = parallel_experiment(pomdp,
                           max_steps,
                           solver_list,
                           full_factorial_design=false)
-for i in 1:length(dfs)
-    CSV.write("BumperRoomba$(i).csv", dfs[i])
+
+maps = [(7, 8), (11, 11), (15, 15)]
+for map in maps
+    dfs = parallel_experiment(number_of_episodes,
+                            max_steps,
+                            solver_list,
+                            full_factorial_design=false) do
+
+        possible_ps = [(i, j) for i in 1:map[1], j in 1:map[1]]
+        selected = unique(rand(possible_ps, map[2]))
+        while length(selected) !== map[2]
+            push!(selected, rand(possible_ps))
+            selected = unique!(selected)
+        end
+        return RockSamplePOMDP(map_size=map, rocks_positions=selected)
+    end
 end

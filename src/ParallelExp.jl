@@ -14,18 +14,20 @@ export
     FuncSolver,
     CSV
 
-function parallel_experiment(pomdp::POMDP,
+function parallel_experiment(pomdp::Union{POMDP, Function},
                              number_of_episodes::Int,
                              max_steps::Int,
                              solver_list::Array;
                              belief_updater::Union{Updater,Nothing}     = nothing,
-                             initial_belief::Any                        = initialstate_distribution(pomdp),
+                             initial_belief::Any                        = nothing,
                              initialstate::Any                          = nothing,
                              show_progress::Bool                        = true,
                              max_queue_length::Int                      = 300,
                              full_factorial_design::Bool                = true,
                              auto_save::Bool                            = true)
 
+    m = typeof(pomdp) <: Function ? pomdp() : pomdp
+    initial_belief = initialstate_distribution(m)
     println("Generating experimental design")
     solvers = []
     for i in 1:length(solver_list)
@@ -69,12 +71,14 @@ function parallel_experiment(pomdp::POMDP,
         for i = 1:length(params)
             println("Preparing simulators for the $(i)-th set of parameters of the $(string(solver))")
             if belief_updater === nothing
-                planner = solve(solver(;params[i]...), pomdp)
+                m = typeof(pomdp) <: Function ? pomdp() : pomdp
+                planner = solve(solver(;params[i]...), m)
                 belief_updater = updater(planner)
             end
             for j = 1:number_of_episodes
-                planner = solve(solver(;params[i]...), pomdp)
-                push!(queue, Sim(pomdp, planner, belief_updater, initial_belief, initialstate, max_steps=max_steps, metadata=Dict(:No=>i)))
+                m = typeof(pomdp) <: Function ? pomdp() : pomdp
+                planner = solve(solver(;params[i]...), m)
+                push!(queue, Sim(m, planner, belief_updater, initial_belief, initialstate, max_steps=max_steps, metadata=Dict(:No=>i)))
             end
             if length(queue) < max_queue_length && i != length(params) # queue should be large so that CPU is always busy
                 continue
