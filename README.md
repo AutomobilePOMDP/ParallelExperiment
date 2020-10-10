@@ -12,7 +12,7 @@ for map in maps
 
         possible_ps = [(i, j) for i in 1:map[1], j in 1:map[1]]
         selected = unique(rand(possible_ps, map[2]))
-        while length(selected) !== map[2]
+        while length(selected) != map[2]
             push!(selected, rand(possible_ps))
             selected = unique!(selected)
         end
@@ -25,7 +25,7 @@ Or you can explicitly input a function, for example,
 function rsgen()
     possible_ps = [(i, j) for i in 1:map[1], j in 1:map[1]]
     selected = unique(rand(possible_ps, map[2]))
-    while length(selected) !== map[2]
+    while length(selected) != map[2]
         push!(selected, rand(possible_ps))
         selected = unique!(selected)
     end
