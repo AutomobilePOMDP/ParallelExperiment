@@ -42,6 +42,7 @@ dfs = parallel_experiment(rsgen,
 4. solver_labels: Store the labels of solvers in a list. Note that only the labels of distinct solvers are needed as the same solvers will be automatically merged.
 5. solver_list_labels: Stored in the same order of solver_list, but symbols are not needed as they are indicated by the sequence.
 6. experiment_label: Files will be stored in the name of $ExperimentLabel-SolverLabel.csv$. If no experiment label is specified, the starting time of the experiment will be used.
+7. ParallelExperiment has no more output. Data will be saved automatically in a csv file.
 
 ## Installation
 ```bash
