@@ -19,9 +19,9 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
                              number_of_episodes::Int,
                              max_steps::Int,
                              solver_list::Array;
-                             belief_updater::Union{Updater,Nothing}     = nothing,
+                             belief_updater::Any                        = nothing,
                              initial_belief::Any                        = nothing,
-                             initial_state::Any                          = nothing,
+                             initial_state::Any                         = nothing,
                              show_progress::Bool                        = true,
                              max_queue_length::Int                      = 300,
                              full_factorial_design::Bool                = true,
@@ -130,12 +130,16 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
                 # Generate planners and belief_updater.
                 planner = solve(solver(;params[k]...), m)
                 if belief_updater === nothing
-                    belief_updater = updater(planner)
+                    up = updater(planner)
+                elseif typeof(belief_updater) <: Function
+                    up = belief_updater(m)
+                else
+                    up = belief_updater
                 end
                 # Push a simulator into the queue.
                 push!(queue, Sim(m,
                                 planner,
-                                belief_updater,
+                                up,
                                 initialstate(m),
                                 initial_state,
                                 max_steps=max_steps,

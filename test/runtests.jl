@@ -10,6 +10,7 @@ using ParallelExp
 using BasicPOMCP
 using POMDPPolicies
 using Random
+using ParticleFilters
 
 # POMDP problem
 pomdp = RockSamplePOMDP()
@@ -52,6 +53,7 @@ for map in maps
                             max_steps,
                             solver_list,
                             solver_list_labels=solver_list_labels,
+                            belief_updater=(m)->SIRParticleFilter(m, 20000),
                             full_factorial_design=false) do
 
         possible_ps = [(i, j) for i in 1:map[1], j in 1:map[1]]

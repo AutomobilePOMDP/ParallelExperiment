@@ -43,6 +43,7 @@ dfs = parallel_experiment(rsgen,
 5. solver_list_labels: Stored in the same order of solver_list, but symbols are not needed as they are indicated by the sequence.
 6. experiment_label: Files will be stored in the name of $ExperimentLabel-SolverLabel.csv$. If no experiment label is specified, the starting time of the experiment will be used.
 7. ParallelExperiment has no more output. Data will be saved automatically in a csv file.
+8. belief_updater can be a function which take in the POMDP model and output a belief updater.
 
 ## Installation
 ```bash
@@ -122,7 +123,7 @@ for i in 1:length(dfs)
 end
 ```
 ## Key parameters
-- belief_updater: Customized belief updater for specific POMDP problem
+- belief_updater: Customized belief updater for specific POMDP problem. It can either be a predefined `belief_updater::Updater` or a function `(pomdp_model)->(belief_updater)`.
 - initial_belief: Customized initial belief for specific POMDP problem
 - initial_state: Customized initial state for specific POMDP problem
 - show_progress: Whether to show progress. Default to true.
