@@ -27,6 +27,7 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
                              full_factorial_design::Bool                = true,
                              solver_labels::Union{Array, Nothing}       = nothing,
                              solver_list_labels::Union{Array, Nothing}  = nothing,
+                             proc_warn::Bool                            = true,
                              experiment_label::String                   = Dates.format(now(), "mmddHHMMSS"))
 
     # If no solver_labels are provided, then take the struct name of solvers as solver_labels.
@@ -146,21 +147,21 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
                                 metadata=Dict(:Epsiode=>i, :Solver=>j, :Param=>k)))
                 # If the lenght of the queue surpass the max_queue_length, then start simulating.
                 if length(queue) >= max_queue_length
-                    raw_data = process_queue!(queue, raw_data, labels, experiment_label, show_progress)
+                    raw_data = process_queue!(queue, raw_data, labels, experiment_label, show_progress, proc_warn)
                 end
             end
         end
     end
     if length(queue) != 0
         # Perform a simulation at the end, if the queue is not empty.
-        process_queue!(queue, raw_data, labels, experiment_label, show_progress)
+        process_queue!(queue, raw_data, labels, experiment_label, show_progress, proc_warn)
     end
     return nothing::Nothing
 end
 
-function process_queue!(queue::Array, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool)
+function process_queue!(queue::Array, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool, proc_warn::Bool)
     println("Solving")
-    data = run_parallel(queue, show_progress=show_progress) do sim, hist
+    data = run_parallel(queue, show_progress=show_progress, proc_warn=proc_warn) do sim, hist
         return (reward=discounted_reward(hist),) # Discounted reward is used. An alternative can be undiscounted_reward()
     end
     empty!(queue) # clear out queue for next sets of parameters

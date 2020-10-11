@@ -16,7 +16,7 @@ for map in maps
             push!(selected, rand(possible_ps))
             selected = unique!(selected)
         end
-        return RockSamplePOMDP(map_size=map, rocks_positions=selected)
+        return RockSamplePOMDP(map_size=(map[1],map[1]), rocks_positions=selected)
     end
 end
 ```
@@ -29,7 +29,7 @@ function rsgen()
         push!(selected, rand(possible_ps))
         selected = unique!(selected)
     end
-    return RockSamplePOMDP(map_size=map, rocks_positions=selected)
+    return RockSamplePOMDP(map_size=(map[1],map[1]), rocks_positions=selected)
 end
 dfs = parallel_experiment(rsgen,
                         number_of_episodes,

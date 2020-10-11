@@ -2,7 +2,6 @@ num_of_procs = 10 # You can also use addprocs() with no argument to create as ma
 using Distributed
 addprocs(num_of_procs)
 
-using ParallelExp
 
 @everywhere using POMDPs # Basic POMDP framework
 @everywhere using RockSample
@@ -11,6 +10,8 @@ using BasicPOMCP
 using POMDPPolicies
 using Random
 using ParticleFilters
+
+using ParallelExp
 
 # POMDP problem
 pomdp = RockSamplePOMDP()
@@ -62,6 +63,6 @@ for map in maps
             push!(selected, rand(possible_ps))
             selected = unique!(selected)
         end
-        return RockSamplePOMDP(map_size=map, rocks_positions=selected)
+        return RockSamplePOMDP(map_size=(map[1],map[1]), rocks_positions=selected)
     end
 end
