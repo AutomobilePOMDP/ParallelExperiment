@@ -1,7 +1,7 @@
 # Parallel Experiment
 ParallelExp is a module providing necessary tools for parallel experiments. It features experiments with different POMDP solvers and different sets of parameters for each solver.
 ## Update
-1. The pomdp can now be a Function for generating environment. For example,
+1. The `pomdp` can now be a Function for generating environment. For example,
 ```julia
 maps = [(7, 8), (11, 11), (15, 15)]
 for map in maps
