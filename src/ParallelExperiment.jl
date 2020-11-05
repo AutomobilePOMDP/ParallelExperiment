@@ -1,4 +1,4 @@
-module ParallelExp
+module ParallelExperiment
 
 using POMDPs
 using POMDPPolicies # For function policy and random policy
@@ -13,7 +13,8 @@ using Dates
 export
     parallel_experiment,
     FuncSolver,
-    CSV
+    CSV,
+    init_param
 
 function parallel_experiment(pomdp::Union{POMDP, Function},
                              number_of_episodes::Int,
@@ -53,8 +54,17 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
         end
     end
 
-
     println("Generating experimental design")
+    if typeof(pomdp) <: POMDP 
+        m = pomdp
+        for (a,b) in solver_list
+            for (param, values) in b
+                for v in values
+                    init_param(m, v)
+                end
+            end
+        end
+    end
     # Generating the param set and its labels.
     param_set = []
     param_set_labels = []
@@ -124,7 +134,16 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     for i in 1:number_of_episodes
         println("Generating solvers for the $(i)-th episode.")
         # Generate a POMDP model if a generator is provided. This model is shared across all available parameter settings.
-        m = typeof(pomdp) <: Function ? pomdp() : pomdp
+        if typeof(pomdp) <: Function 
+            m = pomdp()
+            for (a,b) in solver_list
+                for (param, values) in b
+                    for v in values
+                        init_param(m, v)
+                    end
+                end
+            end
+        end
         for j in 1:length(param_set)
             solver, params = param_set[j]
             for k in 1:length(params)
@@ -158,6 +177,8 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     end
     return nothing::Nothing
 end
+
+function init_param(m, param) end
 
 function process_queue!(queue::Array, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool, proc_warn::Bool)
     println("Solving")

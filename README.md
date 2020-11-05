@@ -44,6 +44,7 @@ dfs = parallel_experiment(rsgen,
 6. experiment_label: Files will be stored in the name of $ExperimentLabel-SolverLabel.csv$. If no experiment label is specified, the starting time of the experiment will be used.
 7. ParallelExperiment has no more output. Data will be saved automatically in a csv file.
 8. belief_updater can be a function which take in the POMDP model and output a belief updater.
+9. Provide an interface for initializing param with POMDP models. All you need to do is to implement a `param_init(model, param::P)` function where `P` is the type of objects you want initialize. The parameter with be initialized every time the POMDP model changed.
 
 ## Installation
 ```bash
