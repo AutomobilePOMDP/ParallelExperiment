@@ -1,7 +1,8 @@
 num_of_procs = 10 # You can also use addprocs() with no argument to create as many workers as your threads
 using Distributed
 addprocs(num_of_procs)
-
+mkdir("results")
+cd("results")
 
 @everywhere using POMDPs # Basic POMDP framework
 @everywhere using RockSample
@@ -20,19 +21,10 @@ pomdp = RockSamplePOMDP()
 
 # For POMCP
 random_value_estimator = FORollout(RandomPolicy(pomdp))
-@everywhere mutable struct MDPEstimator
-    solver::ValueIterationSolver
-    policy::Union{Nothing, ValueIterationPolicy}
+@everywhere function ParallelExperiment.init_param(m, param::FORollout)
+    return typeof(param.solver) <: POMDPs.Solver ? FORollout(solve(param.solver, UnderlyingMDP(m))) : param
 end
-MDPEstimator(solver) = MDPEstimator(solver, nothing)
-@everywhere function ParallelExperiment.init_param(m, param::MDPEstimator)
-    m = UnderlyingMDP(m)
-    param.policy = solve(param.solver, m)
-end
-@everywhere function POMCPOW.estimate_value(o::MDPEstimator, pomdp, s, h, steps)
-    value(o.policy, s)
-end
-pomcpow_list = [:estimate_value=>[random_value_estimator, MDPEstimator(ValueIterationSolver())],
+pomcpow_list = [:estimate_value=>[random_value_estimator, FORollout(ValueIterationSolver())],
                 :tree_queries=>[100000,], 
                 :max_time=>[1.0,], 
                 :criterion=>[MaxUCB(0.1), MaxUCB(1.0), MaxUCB(10.), MaxUCB(100.), MaxUCB(1000.)]]
@@ -62,7 +54,7 @@ parallel_experiment(pomdp,
                     solver_labels=["POMCP",],
                     full_factorial_design=false)
 
-maps = [(7, 8), (11, 11)]
+maps = [(7, 8), (5, 5)]
 for map in maps
     parallel_experiment(number_of_episodes,
                         max_steps,
@@ -80,3 +72,4 @@ for map in maps
         return RockSamplePOMDP(map_size=(map[1],map[1]), rocks_positions=selected)
     end
 end
+rm("../results", recursive=true)

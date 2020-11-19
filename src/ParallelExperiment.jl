@@ -47,7 +47,7 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
             push!(solver_list_labels, labels)
         end
     else
-        # sovler_list is expected to be of identical structure with solver_list_labels
+        # solver is expected to be of identical structure with solver_list_labels
         @assert length(solver_list) == length(solver_list_labels)
         for i in 1:length(solver_list)
             @assert length(solver_list[i].second) == length(solver_list_labels[i])
@@ -55,69 +55,47 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     end
 
     println("Generating experimental design")
-    if typeof(pomdp) <: POMDP 
-        m = pomdp
-        for (a,b) in solver_list
-            for (param, values) in b
-                for v in values
-                    init_param(m, v)
-                end
-            end
-        end
-    end
-    # Generating the param set and its labels.
-    param_set = []
+
+    # Generating the labels of param set.
     param_set_labels = []
-    for i in 1:length(solver_list)
-        solver = solver_list[i].first
-        param_list = solver_list[i].second
+    for i in 1:length(solver_list_labels)
         param_list_labels = solver_list_labels[i]
+        param_list = solver_list[i].second
         if full_factorial_design
-            params = [[]]
             labels = [[]]
-            for j in 1:length(param_list)
-                param = param_list[j].first
-                values = param_list[j].second
+            for j in 1:length(param_list_labels)
                 value_labels = param_list_labels[j]
-                params = [[a...,param=>b] for a in params for b in values]
+                param = param_list[j].first
                 labels = [[a...,param=>b] for a in labels for b in value_labels]
             end
         else
-            default_param = []
             default_param_labels = []
-            for j in 1:length(param_list)
-                param = param_list[j].first
-                value = param_list[j].second[1]
-                value_label = param_list_labels[j][1]
-                push!(default_param, param=>value)
-                push!(default_param_labels, param=>value_label)
-            end
-            params = []
-            labels = []
-            for j in 1:length(param_list)
-                param = param_list[j].first
-                values = param_list[j].second
+            for j in 1:length(param_list_labels)
                 value_labels = param_list_labels[j]
-                for k in 1:length(values)
-                    push!(params, [default_param[1:j-1]..., param=>values[k], default_param[j+1:end]...])
-                    push!(labels, [default_param_labels[1:j-1]..., param=>value_labels[k], default_param_labels[j+1:end]...])
+                param = param_list[j].first
+                push!(default_param_labels, param=>value_labels[1])
+            end
+            labels = []
+            for j in 1:length(param_list_labels)
+                value_labels = param_list_labels[j]
+                param = param_list[j].first
+                for value_label in value_labels
+                    push!(labels, [default_param_labels[1:j-1]..., param=>value_label, default_param_labels[j+1:end]...])
                 end
             end
-            params = unique(params)
             labels = unique(labels)
         end 
         # Different sets of parameters for same solver will be merged
         isexist = false
-        for i in 1:length(param_set)
-            if param_set[i].first == solver
-                param_set[i] = solver=>unique(vcat(param_set[i].second, params))
-                param_set_labels[i] = solver=>unique(vcat(param_set_labels[i].second, labels))
+        solver = solver_list[i].first
+        for j in 1:length(param_set_labels)
+            if param_set_labels[j].first == solver
+                param_set_labels[j] = solver=>unique(vcat(param_set_labels[j].second, labels))
                 isexist = true
                 break
             end
         end
         if !isexist
-            push!(param_set, solver=>params)
             push!(param_set_labels, solver=>labels)
         end 
     end
@@ -131,18 +109,19 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     println("Simulations begin")
     queue = [] # simualtor queue
     raw_data = DataFrame() # stores the discounted_reward for each combination of Epsiode, Solver and Param.
+    solved_solver_list = deepcopy(solver_list)
+    if typeof(pomdp) <: POMDP 
+        m = pomdp
+        init_param_list!(solved_solver_list, solver_list, m)
+        param_set = gen_param_set(solved_solver_list, full_factorial_design)
+    end
     for i in 1:number_of_episodes
         println("Generating solvers for the $(i)-th episode.")
         # Generate a POMDP model if a generator is provided. This model is shared across all available parameter settings.
         if typeof(pomdp) <: Function 
             m = pomdp()
-            for (a,b) in solver_list
-                for (param, values) in b
-                    for v in values
-                        init_param(m, v)
-                    end
-                end
-            end
+            init_param_list!(solved_solver_list, solver_list, m)
+            param_set = gen_param_set(solved_solver_list, full_factorial_design)
         end
         for j in 1:length(param_set)
             solver, params = param_set[j]
@@ -178,7 +157,60 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     return nothing::Nothing
 end
 
-function init_param(m, param) end
+init_param(m, param) = param
+
+function init_param_list!(solved_solver_list, solver_list, pomdp)
+    for i in 1:length(solver_list)
+        param_list = solver_list[i].second
+        solved_param_list = solved_solver_list[i].second
+        for j in 1:length(param_list)
+            values = param_list[j].second
+            solved_values = solved_param_list[j].second
+            for k in 1:length(values)
+                solved_values[k] = init_param(pomdp, values[k])
+            end
+        end
+    end
+end
+
+function gen_param_set(solver_list::Array, full_factorial_design::Bool)
+    param_set = []
+    for (solver, param_list) in solver_list
+        if full_factorial_design
+            params = [[]]
+            for (param, values) in param_list
+                params = [[a...,param=>b] for a in params for b in values]
+            end
+        else
+            default_param = []
+            for (param, values) in param_list
+                push!(default_param, param=>values[1])
+            end
+            params = []
+            for i in 1:length(param_list)
+                param = param_list[i].first
+                values = param_list[i].second
+                for value in values
+                    push!(params, [default_param[1:i-1]..., param=>value, default_param[i+1:end]...])
+                end
+            end
+            params = unique(params)
+        end 
+        # Different sets of parameters for same solver will be merged
+        isexist = false
+        for i in 1:length(param_set)
+            if param_set[i].first == solver
+                param_set[i] = solver=>unique(vcat(param_set[j].second, params))
+                isexist = true
+                break
+            end
+        end
+        if !isexist
+            push!(param_set, solver=>params)
+        end 
+    end
+    return param_set
+end
 
 function process_queue!(queue::Array, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool, proc_warn::Bool)
     println("Solving")

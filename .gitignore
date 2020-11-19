@@ -1,3 +1,4 @@
 notebook/*.gif
 notebook/*.csv
 notebook/.ipynb_checkpoints
+Manifest.toml
