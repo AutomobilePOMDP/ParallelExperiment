@@ -59,7 +59,7 @@ addprocs(num_of_procs) # initial workers with the project env in current work di
 
 # using Pkg
 # Pkg.add("https://github.com/AutomobilePOMDP/ParallelExperiment")
-using ParallelExperiment
+using ParallelExp
 
 # Make sure all your solvers are loaded in every procs
 @everywhere using POMCPOW
