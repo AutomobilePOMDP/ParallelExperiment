@@ -109,10 +109,9 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     println("Simulations begin")
     queue = [] # simualtor queue
     raw_data = DataFrame() # stores the discounted_reward for each combination of Epsiode, Solver and Param.
-    solved_solver_list = deepcopy(solver_list)
     if typeof(pomdp) <: POMDP 
         m = pomdp
-        init_param_list!(solved_solver_list, solver_list, m)
+        solved_solver_list = init_param_list(m, solver_list)
         param_set = gen_param_set(solved_solver_list, full_factorial_design)
     end
     for i in 1:number_of_episodes
@@ -120,7 +119,7 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
         # Generate a POMDP model if a generator is provided. This model is shared across all available parameter settings.
         if typeof(pomdp) <: Function 
             m = pomdp()
-            init_param_list!(solved_solver_list, solver_list, m)
+            solved_solver_list = init_param_list(m, solver_list)
             param_set = gen_param_set(solved_solver_list, full_factorial_design)
         end
         for j in 1:length(param_set)
@@ -159,18 +158,20 @@ end
 
 init_param(m, param) = param
 
-function init_param_list!(solved_solver_list, solver_list, pomdp)
-    for i in 1:length(solver_list)
-        param_list = solver_list[i].second
-        solved_param_list = solved_solver_list[i].second
-        for j in 1:length(param_list)
-            values = param_list[j].second
-            solved_values = solved_param_list[j].second
-            for k in 1:length(values)
-                solved_values[k] = init_param(pomdp, values[k])
+function init_param_list(m, solver_list)
+    solved_solver_list = Pair{Any, Array{Pair{Symbol, Array{Any, 1}}, 1}}[]
+    for (solver, param_list) in solver_list
+        solved_param_list = Pair{Symbol, Array{Any, 1}}[]
+        for (param, values) in param_list
+            solved_values = Any[]
+            for value in values
+                push!(solved_values, init_param(m, value))
             end
+            push!(solved_param_list, param=>solved_values)
         end
+        push!(solved_solver_list, solver=>solved_param_list)
     end
+    return solved_solver_list
 end
 
 function gen_param_set(solver_list::Array, full_factorial_design::Bool)
