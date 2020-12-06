@@ -10,6 +10,7 @@ using CSV
 using Printf
 using Dates
 using Distributed
+using ProgressMeter
 
 export
     parallel_experiment,
@@ -112,15 +113,15 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     raw_data = DataFrame() # stores the discounted_reward for each combination of Epsiode, Solver and Param.
     if typeof(pomdp) <: POMDP 
         m = pomdp
-        initialized_solver_list = init_param_list(m, solver_list)
+        initialized_solver_list = init_param_list(m, solver_list, show_progress)
         param_set = gen_param_set(initialized_solver_list, full_factorial_design)
     end
     for i in 1:number_of_episodes
-        println("Generating solvers for the $(i)-th episode.")
+        println("Preparing for the $(i)-th episode.")
         # Generate a POMDP model if a generator is provided. This model is shared across all available parameter settings.
         if typeof(pomdp) <: Function 
             m = pomdp()
-            initialized_solver_list = init_param_list(m, solver_list)
+            initialized_solver_list = init_param_list(m, solver_list, show_progress)
             param_set = gen_param_set(initialized_solver_list, full_factorial_design)
         end
         for (j, (solver, params)) in enumerate(param_set)
@@ -142,7 +143,7 @@ end
 
 init_param(m, param) = param
 
-function init_param_list(m, solver_list)
+function init_param_list(m, solver_list, show_progress)
     params = Any[]
     for (solver, param_list) in solver_list
         for (param, values) in param_list
@@ -151,7 +152,8 @@ function init_param_list(m, solver_list)
             end
         end
     end
-    initialized_params = pmap((param)->init_param(m, param), params)
+    map_function(args...) = (show_progress ? progress_pmap(args..., progress=Progress(length(params), desc="Initializing parameters...")) : pmap(args...))
+    initialized_params = map_function((param)->init_param(m, param), params)
     initialized_solver_list = Pair{Any, Array{Pair{Symbol, Array{Any, 1}}, 1}}[]
     for (solver, param_list) in solver_list
         initialized_param_list = Pair{Symbol, Array{Any, 1}}[]
@@ -240,8 +242,8 @@ function solve_sim(m::POMDP, solver::Any, belief_updater::Any, initial_belief::A
 end
 
 function process_queue!(sim_queue::Array{Array{Any,1},1}, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool, proc_warn::Bool)
-    solved_sim_queue = pmap((sim)->solve_sim(sim...), sim_queue)
-    println("Solving")
+    map_function(args...) = (show_progress ? progress_pmap(args..., progress=Progress(length(sim_queue), desc="Solving for simulators...")) : pmap(args...))
+    solved_sim_queue = map_function((sim)->solve_sim(sim...), sim_queue)
     data = run_parallel(solved_sim_queue, show_progress=show_progress, proc_warn=proc_warn) do sim, hist
         return (reward=discounted_reward(hist),) # Discounted reward is used. An alternative can be undiscounted_reward()
     end
