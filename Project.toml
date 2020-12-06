@@ -1,7 +1,7 @@
 name = "ParallelExperiment"
 uuid = "34d6aced-5efe-466f-b6da-e4bb150683a7"
 repo = "https://github.com/AutomobilePOMDP/ParallelExperiment"
-version = "0.2.2"
+version = "0.2.3"
 
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
@@ -25,9 +25,9 @@ julia = "1"
 BasicPOMCP = "d721219e-3fc6-5570-a8ef-e5402f47c49e"
 DiscreteValueIteration = "4b033969-44f6-5439-a48b-c11fa3648068"
 POMCPOW = "4c53ee00-974c-466f-8fa5-8dd73959bbab"
+POMDPModelTools = "08074719-1b2a-587c-a292-00f91cc44415"
 ParticleFilters = "c8b314e2-9260-5cf8-ae76-3be7461ca6d0"
 RockSample = "de008ff0-c357-11e8-3329-7fe746fe836e"
-POMDPModelTools = "08074719-1b2a-587c-a292-00f91cc44415"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]

@@ -9,6 +9,7 @@ using DataFrames
 using CSV
 using Printf
 using Dates
+using Distributed
 
 export
     parallel_experiment,
@@ -107,51 +108,34 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     end
     
     println("Simulations begin")
-    queue = [] # simualtor queue
+    sim_queue = Array{Any, 1}[]
     raw_data = DataFrame() # stores the discounted_reward for each combination of Epsiode, Solver and Param.
     if typeof(pomdp) <: POMDP 
         m = pomdp
-        solved_solver_list = init_param_list(m, solver_list)
-        param_set = gen_param_set(solved_solver_list, full_factorial_design)
+        initialized_solver_list = init_param_list(m, solver_list)
+        param_set = gen_param_set(initialized_solver_list, full_factorial_design)
     end
     for i in 1:number_of_episodes
         println("Generating solvers for the $(i)-th episode.")
         # Generate a POMDP model if a generator is provided. This model is shared across all available parameter settings.
         if typeof(pomdp) <: Function 
             m = pomdp()
-            solved_solver_list = init_param_list(m, solver_list)
-            param_set = gen_param_set(solved_solver_list, full_factorial_design)
+            initialized_solver_list = init_param_list(m, solver_list)
+            param_set = gen_param_set(initialized_solver_list, full_factorial_design)
         end
-        for j in 1:length(param_set)
-            solver, params = param_set[j]
-            for k in 1:length(params)
-                # Generate planners and belief_updater.
-                planner = solve(solver(;params[k]...), m)
-                if belief_updater === nothing
-                    up = updater(planner)
-                elseif typeof(belief_updater) <: Function
-                    up = belief_updater(m)
-                else
-                    up = belief_updater
-                end
-                # Push a simulator into the queue.
-                push!(queue, Sim(m,
-                                planner,
-                                up,
-                                initialstate(m),
-                                initial_state,
-                                max_steps=max_steps,
-                                metadata=Dict(:Epsiode=>i, :Solver=>j, :Param=>k)))
-                # If the lenght of the queue surpass the max_queue_length, then start simulating.
-                if length(queue) >= max_queue_length
-                    raw_data = process_queue!(queue, raw_data, labels, experiment_label, show_progress, proc_warn)
+        for (j, (solver, params)) in enumerate(param_set)
+            for (k, param) in enumerate(params)
+                push!(sim_queue, [m, solver, belief_updater, initial_belief, initial_state, max_steps, i, j, k, param])
+                # If the lenght of the sim_queue surpass the max_queue_length, then start simulating.
+                if length(sim_queue) >= max_queue_length
+                    raw_data = process_queue!(sim_queue, raw_data, labels, experiment_label, show_progress, proc_warn)
                 end
             end
         end
     end
-    if length(queue) != 0
-        # Perform a simulation at the end, if the queue is not empty.
-        process_queue!(queue, raw_data, labels, experiment_label, show_progress, proc_warn)
+    if length(sim_queue) != 0
+        # Perform a simulation at the end, if the sim_queue is not empty.
+        process_queue!(sim_queue, raw_data, labels, experiment_label, show_progress, proc_warn)
     end
     return nothing::Nothing
 end
@@ -159,19 +143,29 @@ end
 init_param(m, param) = param
 
 function init_param_list(m, solver_list)
-    solved_solver_list = Pair{Any, Array{Pair{Symbol, Array{Any, 1}}, 1}}[]
+    params = Any[]
     for (solver, param_list) in solver_list
-        solved_param_list = Pair{Symbol, Array{Any, 1}}[]
         for (param, values) in param_list
-            solved_values = Any[]
             for value in values
-                push!(solved_values, init_param(m, value))
+                push!(params, value)
             end
-            push!(solved_param_list, param=>solved_values)
         end
-        push!(solved_solver_list, solver=>solved_param_list)
     end
-    return solved_solver_list
+    initialized_params = pmap((param)->init_param(m, param), params)
+    initialized_solver_list = Pair{Any, Array{Pair{Symbol, Array{Any, 1}}, 1}}[]
+    for (solver, param_list) in solver_list
+        initialized_param_list = Pair{Symbol, Array{Any, 1}}[]
+        for (param, values) in param_list
+            initialized_values = Any[]
+            for value in values
+                push!(initialized_values, initialized_params[1])
+                initialized_params = initialized_params[2:end]
+            end
+            push!(initialized_param_list, param=>initialized_values)
+        end
+        push!(initialized_solver_list, solver=>initialized_param_list)
+    end
+    return initialized_solver_list
 end
 
 function gen_param_set(solver_list::Array, full_factorial_design::Bool)
@@ -213,12 +207,45 @@ function gen_param_set(solver_list::Array, full_factorial_design::Bool)
     return param_set
 end
 
-function process_queue!(queue::Array, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool, proc_warn::Bool)
+function solve_sim(m::POMDP, solver::Any, belief_updater::Any, initial_belief::Any, initial_state::Any, max_steps::Int, i::Int, j::Int, k::Int, param::Array{P,1}) where P <: Pair
+    # Generate planners and belief_updater.
+    planner = solve(solver(;param...), m)
+    if belief_updater === nothing
+        up = updater(planner)
+    elseif typeof(belief_updater) <: Function
+        up = belief_updater(m)
+    else
+        up = belief_updater
+    end
+    if initial_belief === nothing
+        b0 = initialstate(m)
+    elseif typeof(belief_updater) <: Function
+        b0 = initial_belief(m)
+    else
+        b0 = initial_belief
+    end
+    if typeof(initial_state) <: Function
+        s0 = initial_state(m)
+    else
+        s0 = initial_state
+    end
+
+    Sim(m,
+        planner,
+        up,
+        b0,
+        s0,
+        max_steps=max_steps,
+        metadata=Dict(:Epsiode=>i, :Solver=>j, :Param=>k))
+end
+
+function process_queue!(sim_queue::Array{Array{Any,1},1}, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool, proc_warn::Bool)
+    solved_sim_queue = pmap((sim)->solve_sim(sim...), sim_queue)
     println("Solving")
-    data = run_parallel(queue, show_progress=show_progress, proc_warn=proc_warn) do sim, hist
+    data = run_parallel(solved_sim_queue, show_progress=show_progress, proc_warn=proc_warn) do sim, hist
         return (reward=discounted_reward(hist),) # Discounted reward is used. An alternative can be undiscounted_reward()
     end
-    empty!(queue) # clear out queue for next sets of parameters
+    empty!(sim_queue) # clear out queue for next sets of parameters
     raw_data = DataFrame([raw_data;data]) # Merge newly generated data into raw_data
 
     for data in groupby(raw_data, :Solver)

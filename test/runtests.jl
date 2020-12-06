@@ -1,6 +1,9 @@
 num_of_procs = 10 # You can also use addprocs() with no argument to create as many workers as your threads
 using Distributed
 addprocs(num_of_procs)
+if isdir("results")
+    rm("results", recursive=true)
+end
 mkdir("results")
 cd("results")
 
@@ -9,10 +12,10 @@ cd("results")
 @everywhere using POMCPOW
 @everywhere using DiscreteValueIteration
 @everywhere using POMDPModelTools
+@everywhere using ParticleFilters
 using BasicPOMCP
 using POMDPPolicies
 using Random
-using ParticleFilters
 
 @everywhere using ParallelExperiment
 
@@ -52,6 +55,7 @@ parallel_experiment(pomdp,
                     max_steps,
                     solver_list,
                     solver_labels=["POMCP",],
+                    belief_updater=SIRParticleFilter(pomdp, 20000),
                     full_factorial_design=false)
 
 maps = [(7, 8), (5, 5)]
