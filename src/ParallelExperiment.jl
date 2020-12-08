@@ -242,7 +242,7 @@ function solve_sim(m::POMDP, solver::Any, belief_updater::Any, initial_belief::A
 end
 
 function process_queue!(sim_queue::Array{Array{Any,1},1}, raw_data::DataFrame, labels::Array, experiment_label::String, show_progress::Bool, proc_warn::Bool)
-    map_function(args...) = (show_progress ? progress_pmap(args..., progress=Progress(length(sim_queue), desc="Solving for simulators...")) : pmap(args...))
+    map_function(args...) = (show_progress ? progress_pmap(args..., progress=Progress(length(sim_queue), desc="Generating simulators...")) : pmap(args...))
     solved_sim_queue = map_function((sim)->solve_sim(sim...), sim_queue)
     data = run_parallel(solved_sim_queue, show_progress=show_progress, proc_warn=proc_warn) do sim, hist
         return (reward=discounted_reward(hist),) # Discounted reward is used. An alternative can be undiscounted_reward()
@@ -264,7 +264,13 @@ function process_queue!(sim_queue::Array{Array{Any,1},1}, raw_data::DataFrame, l
     return raw_data
 end
 
-FuncSolver(;func::Union{Nothing, Function}=nothing) = FunctionSolver(func)
+struct FuncSolver <: Solver
+    func::Function
+end
+FuncSolver(;func::Function) = FuncSolver(func)
+function POMDPs.solve(solver::FuncSolver, pomdp::POMDP)
+    FunctionPolicy(b->(solver.func(pomdp, b)))
+end
 
 # end of module
 end
