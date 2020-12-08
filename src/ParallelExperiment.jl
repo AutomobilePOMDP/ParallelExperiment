@@ -142,6 +142,7 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
 end
 
 init_param(m, param) = param
+init_param(m, param::S) where S <: Solver = solve(param, m)
 
 function init_param_list(m, solver_list, show_progress)
     params = Any[]
