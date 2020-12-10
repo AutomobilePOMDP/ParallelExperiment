@@ -1,4 +1,4 @@
-num_of_procs = 10 # You can also use addprocs() with no argument to create as many workers as your threads
+num_of_procs = 1 # You can also use addprocs() with no argument to create as many workers as your threads
 using Distributed
 addprocs(num_of_procs)
 if isdir("results")
@@ -40,18 +40,18 @@ pomcpow_list_labels = [["Random Rollout", "MDP"],
 solver_list = [POMCPOWSolver=>pomcpow_list,]
 solver_list_labels = [pomcpow_list_labels,]
 
-number_of_episodes = 2
+episodes_per_domain = 2
 max_steps = 5
 
 parallel_experiment(pomdp,
-                    number_of_episodes,
+                    episodes_per_domain,
                     max_steps,
                     solver_list,
                     experiment_label="test",
                     full_factorial_design=false)
 
 parallel_experiment(pomdp,
-                    number_of_episodes,
+                    episodes_per_domain,
                     max_steps,
                     solver_list,
                     solver_labels=["POMCP",],
@@ -59,10 +59,12 @@ parallel_experiment(pomdp,
                     full_factorial_design=false)
 
 maps = [(7, 8), (5, 5)]
+max_steps = 1
 for map in maps
-    parallel_experiment(number_of_episodes,
+    parallel_experiment(episodes_per_domain,
                         max_steps,
                         solver_list,
+                        num_of_domains=6,
                         solver_list_labels=solver_list_labels,
                         belief_updater=(m)->SIRParticleFilter(m, 20000),
                         full_factorial_design=false) do
@@ -76,4 +78,5 @@ for map in maps
         return RockSamplePOMDP(map_size=(map[1],map[1]), rocks_positions=selected)
     end
 end
-rm("../results", recursive=true)
+cd("..")
+rm("results", recursive=true)

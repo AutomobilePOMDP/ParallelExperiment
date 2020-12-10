@@ -1,13 +1,14 @@
 # Parallel Experiment
 ParallelExp is a module providing necessary tools for parallel experiments. It features experiments with different POMDP solvers and different sets of parameters for each solver.
 ## Update
-1. The `pomdp` can now be a Function for generating environment. For example,
+1. The `pomdp` can now be a Function for generating environment. Each environment generated will run for `episode_per_domain` episodes, and `num_of_domains` environments will be generated. For example,
 ```julia
 maps = [(7, 8), (11, 11), (15, 15)]
 for map in maps
-    dfs = parallel_experiment(number_of_episodes,
+    dfs = parallel_experiment(episode_per_domain,
                             max_steps,
                             solver_list,
+                            num_of_domains=4,
                             full_factorial_design=false) do
 
         possible_ps = [(i, j) for i in 1:map[1], j in 1:map[1]]
@@ -32,9 +33,10 @@ function rsgen()
     return RockSamplePOMDP(map_size=(map[1],map[1]), rocks_positions=selected)
 end
 dfs = parallel_experiment(rsgen,
-                        number_of_episodes,
+                        episode_per_domain,
                         max_steps,
                         solver_list,
+                        num_of_domains=4,
                         full_factorial_design=false)
 ```
 2. Parameters are now stored in a list so that the order of parameters can be preserved in the output file.
@@ -45,6 +47,7 @@ dfs = parallel_experiment(rsgen,
 7. ParallelExperiment has no more output. Data will be saved automatically in a csv file.
 8. belief_updater can be a function which take in the POMDP model and output a belief updater.
 9. Provide an interface for initializing param with POMDP models. All you need to do is to implement a `param_init(model, param::P)` function where `P` is the type of objects you want initialize. The parameter with be initialized every time the POMDP model changed.
+10. `domain_queue_length` will determine the number of domains initialized in parallel at once.
 
 ## Installation
 ```bash
@@ -110,11 +113,11 @@ solver_labels= [
     "RushPolicy",
 ]
 
-number_of_episodes = 100
+episode_per_domain = 100
 max_steps = 100
 
 dfs = parallel_experiment(pomdp,
-                          number_of_episodes,
+                          episode_per_domain,
                           max_steps,
                           solver_list,
                           belief_updater=belief_updater,
