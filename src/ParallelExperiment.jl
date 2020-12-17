@@ -123,10 +123,10 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
     sim_queue = Array{Any, 1}[]
     raw_data = DataFrame() # stores the discounted_reward for each combination of Epsiode, Solver and Param.
     for i in 1:domain_queue_length:num_of_domains
-        println("Initializing domains $((i-1)*domain_queue_length+1) to $(min(i*domain_queue_length, num_of_domains)).")
+        println("Initializing domains $(i) to $(min(i+domain_queue_length-1, num_of_domains)).")
         params = Any[]
         domain_queue = Any[]
-        for j in 1:min(domain_queue_length, num_of_domains-(i-1)*domain_queue_length)
+        for j in 1:min(domain_queue_length, num_of_domains-i+1)
             m = pomdp()
             push!(domain_queue, m)
             for (solver, param_list) in solver_list
@@ -140,7 +140,7 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
         map_function(args...) = (show_progress ? progress_pmap(args..., progress=Progress(length(params), desc="Initializing parameters...")) : pmap(args...))
         initialized_params = map_function((args)->init_param(args...), params)
         initialized_solver_list = Pair{Any, Array{Pair{Symbol, Array{Any, 1}}, 1}}[]
-        for j in 1:min(domain_queue_length, num_of_domains-(i-1)*domain_queue_length)
+        for j in 1:min(domain_queue_length, num_of_domains-i+1)
             empty!(initialized_solver_list)
             for (solver, param_list) in solver_list
                 initialized_param_list = Pair{Symbol, Array{Any, 1}}[]
@@ -157,9 +157,9 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
             param_set = gen_param_set(initialized_solver_list, full_factorial_design)
             m = domain_queue[1]
             domain_queue = domain_queue[2:end]
-            b0 = initial_belief === nothing ? initialstate(m) : (typeof(belief_updater) <: Function ? initial_belief(m) : initial_belief)
+            b0 = initial_belief === nothing ? initialstate(m) : (typeof(initial_belief) <: Function ? initial_belief(m) : initial_belief)
             for u in 1:episodes_per_domain
-                s0 = typeof(initial_state) <: Function ? initial_state(m) : initial_state
+                s0 = initial_state === nothing ? rand(b0) : (typeof(initial_state) <: Function ? initial_state(m) : initial_state)
                 println("Preparing for the $(((i-1)*domain_queue_length+j-1)*episodes_per_domain+u)-th episode.")
                 for (v, (solver, params)) in enumerate(param_set)
                     for (w, param) in enumerate(params)
