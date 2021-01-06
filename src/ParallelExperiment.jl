@@ -160,10 +160,11 @@ function parallel_experiment(pomdp::Union{POMDP, Function},
             b0 = initial_belief === nothing ? initialstate(m) : (typeof(initial_belief) <: Function ? initial_belief(m) : initial_belief)
             for u in 1:episodes_per_domain
                 s0 = initial_state === nothing ? rand(b0) : (typeof(initial_state) <: Function ? initial_state(m) : initial_state)
-                println("Preparing for the $(((i-1)*domain_queue_length+j-1)*episodes_per_domain+u)-th episode.")
+                No_domain = (i-1+j-1)*episodes_per_domain+u
+                println("Preparing for the $(No_domain)-th episode.")
                 for (v, (solver, params)) in enumerate(param_set)
                     for (w, param) in enumerate(params)
-                        push!(sim_queue, [m, solver, belief_updater, b0, s0, max_steps, u, v, w, param])
+                        push!(sim_queue, [m, solver, belief_updater, b0, s0, max_steps, No_domain, v, w, param])
                         # If the lenght of the sim_queue surpass the max_queue_length, then start simulating.
                         if length(sim_queue) >= max_queue_length
                             raw_data = process_queue!(sim_queue, raw_data, labels, experiment_label, show_progress, proc_warn, discount)
