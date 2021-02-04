@@ -51,7 +51,7 @@ dfs = parallel_experiment(rsgen,
 
 ## Installation
 ```bash
-add https://github.com/AutomobilePOMDP/ParallelExperiment
+add https://github.com/LAMDA-POMDP/ParallelExperiment
 ```
 ## Usage
 ```julia
@@ -61,15 +61,15 @@ using Distributed
 addprocs(num_of_procs) # initial workers with the project env in current work directory
 
 # using Pkg
-# Pkg.add("https://github.com/AutomobilePOMDP/ParallelExperiment")
+# Pkg.add("https://github.com/LAMDA-POMDP/ParallelExperiment")
 using ParallelExperiment
 
 # Make sure all your solvers are loaded in every procs
 @everywhere using POMCPOW
 using BasicPOMCP
 
-# Pkg.add("https://github.com/AutomobilePOMDP/PL-DESPOT")
-@everywhere using PL_DESPOT # PL-DESPOT pkg
+# Pkg.add("https://github.com/LAMDA-POMDP/BS-DESPOT")
+@everywhere using BS_DESPOT # BS-DESPOT pkg
 
 # Make sure these pkgs are loaded in every procs
 @everywhere using POMDPs # Basic POMDP framework
@@ -79,11 +79,11 @@ using BasicPOMCP
 
 # The following codes is quoted from tests.ipynb, you can check the the detail there.
 
-pldespot_list = [:default_action=>[rush_policy,], 
+bsdespot_list = [:default_action=>[rush_policy,], 
                     :bounds=>[bounds, random_bounds],
                     :K=>[100, 300, 500],
                     :beta=>[0., 0.1, 1., 10., 100.]]
-pldespot_list_labels = [["rush_policy",], 
+bsdespot_list_labels = [["rush_policy",], 
                     ["RushLB_FixedUB", "RandomLB_FixedUB"],
                     [100, 300, 500],
                     [0., 0.1, 1., 10., 100.]]
@@ -97,18 +97,18 @@ pomcpow_list_list = [["RandomEstimator"],
                     [1.0,], 
                     [0.1, 1.0, 10., 100., 1000.]]
 
-solver_list = [ PL_DESPOTSolver=>pldespot_list, 
+solver_list = [ BS_DESPOTSolver=>bsdespot_list, 
                 POMCPOWSolver=>pomcpow_list,
-                PL_DESPOTSolver=>pldespot_list1,
+                BS_DESPOTSolver=>bsdespot_list1,
                 FuncSolver=>[:func=>[rush_policy,],]
 
-solver_list_labels = [pldespot_list_labels, 
+solver_list_labels = [bsdespot_list_labels, 
                 pomcpow_list_labels,
-                pldespot_list1_labels,
+                bsdespot_list1_labels,
                 ["rush_policy",],]
 
 solver_labels= [
-    "PL-DESPOT",
+    "BS-DESPOT",
     "POMCP",
     "RushPolicy",
 ]

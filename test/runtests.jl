@@ -25,7 +25,7 @@ pomdp = RockSamplePOMDP()
 # For POMCP
 random_value_estimator = FORollout(RandomPolicy(pomdp))
 @everywhere function ParallelExperiment.init_param(m, param::FORollout)
-    return typeof(param.solver) <: POMDPs.Solver ? FORollout(solve(param.solver, UnderlyingMDP(m))) : param
+    return typeof(param.solver) <: Solver ? FORollout(solve(param.solver, UnderlyingMDP(m))) : param
 end
 pomcpow_list = [:estimate_value=>[random_value_estimator, FORollout(ValueIterationSolver())],
                 :tree_queries=>[100000,], 

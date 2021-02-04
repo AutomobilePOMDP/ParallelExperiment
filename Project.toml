@@ -1,6 +1,6 @@
 name = "ParallelExperiment"
 uuid = "34d6aced-5efe-466f-b6da-e4bb150683a7"
-repo = "https://github.com/AutomobilePOMDP/ParallelExperiment"
+repo = "https://github.com/LAMDA-POMDP/ParallelExperiment"
 version = "0.3.0"
 
 [deps]
