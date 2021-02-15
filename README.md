@@ -69,7 +69,7 @@ using ParallelExperiment
 using BasicPOMCP
 
 # Pkg.add("https://github.com/LAMDA-POMDP/BS-DESPOT")
-@everywhere using BS_DESPOT # BS-DESPOT pkg
+@everywhere using BSDESPOT # BS-DESPOT pkg
 
 # Make sure these pkgs are loaded in every procs
 @everywhere using POMDPs # Basic POMDP framework
